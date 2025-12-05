@@ -30,12 +30,12 @@ function App() {
       const apiKey = import.meta.env.VITE_RETELL_API_KEY || ''
       
       // Access token almak için Retell.ai API'sini kullan
-      // Doğru endpoint: /create-retell-llm-call
+      // Dokümantasyona göre: POST /v2/create-web-call
       let accessToken = ''
       
       if (apiKey && agentId) {
         try {
-          const response = await fetch('https://api.retellai.com/create-retell-llm-call', {
+          const response = await fetch('https://api.retellai.com/v2/create-web-call', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
@@ -49,16 +49,19 @@ function App() {
           if (!response.ok) {
             const errorText = await response.text()
             console.error('API yanıtı:', response.status, errorText)
-            throw new Error(`Access token alınamadı: ${response.status}`)
+            throw new Error(`Access token alınamadı: ${response.status} - ${errorText}`)
           }
           
           const data = await response.json()
-          accessToken = data.call?.call_id || data.call_id || data.token || data.access_token
+          // Dokümantasyona göre response'da access_token veya call_id olabilir
+          accessToken = data.access_token || data.call_id || data.call?.call_id || data.token
           
           if (!accessToken) {
             console.error('API yanıtı:', data)
-            throw new Error('Access token bulunamadı')
+            throw new Error('Access token bulunamadı. API yanıtını kontrol edin.')
           }
+          
+          console.log('Access token başarıyla alındı')
         } catch (err) {
           console.error('Access token hatası:', err)
           throw new Error(`Retell.ai bağlantısı kurulamadı: ${err.message}`)
@@ -73,6 +76,7 @@ function App() {
       const client = new RetellWebClient()
       
       // Event listener'ları ekle
+      // SDK EventEmitter kullanıyor, olası event'ler: conversation_started, conversation_ended, error, etc.
       client.on('conversation_started', () => {
         console.log('Retell.ai konuşması başladı')
         setIsConnected(true)
@@ -88,6 +92,18 @@ function App() {
         console.error('Retell.ai hatası:', error)
         setError(error?.message || error?.toString() || 'Bir hata oluştu')
         setIsConnecting(false)
+        setIsConnected(false)
+      })
+      
+      // Bağlantı başarılı olduğunda da tetiklenebilir
+      client.on('connect', () => {
+        console.log('Retell.ai bağlantısı kuruldu')
+        setIsConnected(true)
+        setIsConnecting(false)
+      })
+      
+      client.on('disconnect', () => {
+        console.log('Retell.ai bağlantısı kesildi')
         setIsConnected(false)
       })
       
