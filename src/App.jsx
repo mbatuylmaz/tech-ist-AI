@@ -28,17 +28,42 @@ function App() {
       const agentId = import.meta.env.VITE_RETELL_AGENT_ID || 'agent_e137bdf68f6bc9474f8fd37c1e'
       const publicKey = import.meta.env.VITE_RETELL_PUBLIC_KEY || ''
       
+      // Retell.ai SDK script'ini dinamik olarak yükle
+      if (!document.querySelector('script[src*="retell"]')) {
+        const script = document.createElement('script')
+        script.src = 'https://cdn.retellai.com/retell-sdk-web/retell-sdk-web.js'
+        script.async = true
+        document.body.appendChild(script)
+        
+        // SDK'nın yüklenmesini bekle
+        await new Promise((resolve, reject) => {
+          script.onload = () => {
+            console.log('Retell.ai SDK script yüklendi')
+            // SDK'nın window'a eklenmesini bekle
+            setTimeout(resolve, 500)
+          }
+          script.onerror = () => {
+            reject(new Error('Retell.ai SDK script yüklenemedi'))
+          }
+          setTimeout(() => reject(new Error('SDK yükleme zaman aşımı')), 15000)
+        })
+      }
+      
       // Retell.ai SDK'nın yüklenmesini bekle
       let retries = 0
-      const maxRetries = 20
+      const maxRetries = 30
       while (!window.RetellWebClient && retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 300))
+        await new Promise(resolve => setTimeout(resolve, 500))
         retries++
+        console.log(`SDK yükleniyor... (${retries}/${maxRetries})`)
       }
 
       if (!window.RetellWebClient) {
-        throw new Error('Retell.ai SDK yüklenemedi. Sayfayı yenileyin ve internet bağlantınızı kontrol edin.')
+        console.error('window.RetellWebClient bulunamadı. window objesi:', Object.keys(window).filter(k => k.toLowerCase().includes('retell')))
+        throw new Error('Retell.ai SDK yüklenemedi. Lütfen sayfayı yenileyin. Eğer sorun devam ederse, Retell.ai Public Key\'inizi kontrol edin.')
       }
+      
+      console.log('Retell.ai SDK başarıyla yüklendi')
 
       // Retell.ai Web SDK kullanarak konuşmayı başlat
       const config = {
