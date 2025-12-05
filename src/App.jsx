@@ -8,30 +8,6 @@ function App() {
   const retellClientRef = useRef(null)
 
   useEffect(() => {
-    // Retell.ai SDK'sını dinamik olarak yükle
-    const loadRetellSDK = async () => {
-      try {
-        // Retell.ai SDK script'ini yükle
-        if (!document.querySelector('script[src*="retell"]')) {
-          const script = document.createElement('script')
-          script.src = 'https://cdn.retellai.com/retell-sdk-web/retell-sdk-web.js'
-          script.async = true
-          document.head.appendChild(script)
-          
-          // SDK'nın yüklenmesini bekle
-          await new Promise((resolve, reject) => {
-            script.onload = resolve
-            script.onerror = reject
-            setTimeout(() => reject(new Error('SDK yükleme zaman aşımı')), 10000)
-          })
-        }
-      } catch (err) {
-        console.error('Retell.ai SDK yüklenemedi:', err)
-      }
-    }
-
-    loadRetellSDK()
-
     // Cleanup
     return () => {
       if (retellClientRef.current) {
@@ -50,20 +26,22 @@ function App() {
 
     try {
       const agentId = import.meta.env.VITE_RETELL_AGENT_ID || 'agent_e137bdf68f6bc9474f8fd37c1e'
+      const publicKey = import.meta.env.VITE_RETELL_PUBLIC_KEY || ''
       
       // Retell.ai SDK'nın yüklenmesini bekle
       let retries = 0
-      while (!window.RetellWebClient && retries < 10) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+      const maxRetries = 20
+      while (!window.RetellWebClient && retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 300))
         retries++
       }
 
       if (!window.RetellWebClient) {
-        throw new Error('Retell.ai SDK yüklenemedi. Sayfayı yenileyin.')
+        throw new Error('Retell.ai SDK yüklenemedi. Sayfayı yenileyin ve internet bağlantınızı kontrol edin.')
       }
 
       // Retell.ai Web SDK kullanarak konuşmayı başlat
-      const client = new window.RetellWebClient({
+      const config = {
         agentId: agentId,
         onConnect: () => {
           console.log('Retell.ai bağlantısı kuruldu')
@@ -80,13 +58,20 @@ function App() {
           setIsConnecting(false)
           setIsConnected(false)
         }
-      })
+      }
+
+      // Public key varsa ekle
+      if (publicKey) {
+        config.publicKey = publicKey
+      }
+
+      const client = new window.RetellWebClient(config)
 
       await client.start()
       retellClientRef.current = client
     } catch (err) {
       console.error('Konuşma başlatılamadı:', err)
-      setError(err.message || 'Konuşma başlatılamadı. Lütfen mikrofon izinlerini kontrol edin.')
+      setError(err.message || 'Konuşma başlatılamadı. Lütfen mikrofon izinlerini kontrol edin ve Retell.ai Public Key\'inizi eklediğinizden emin olun.')
       setIsConnecting(false)
     }
   }
