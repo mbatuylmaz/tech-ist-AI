@@ -29,10 +29,10 @@ cp .env.example .env.local
 4. `.env.local` dosyasını düzenleyin ve Retell.ai bilgilerinizi girin:
 ```
 VITE_RETELL_AGENT_ID=your_agent_id
-VITE_RETELL_PUBLIC_KEY=your_public_key
+VITE_RETELL_API_KEY=your_api_key
 ```
 
-**Not:** Public Key'i Retell.ai kontrol panelinden oluşturmanız gerekmektedir.
+**Not:** API Key'inizi Retell.ai kontrol panelinden alabilirsiniz.
 
 ## Geliştirme
 
@@ -73,18 +73,7 @@ git push -u origin main
 3. GitHub repository'nizi seçin
 4. Framework Preset olarak "Vite" seçin
 
-### 3. Retell.ai Public Key Oluşturma
-
-**ÖNEMLİ:** Retell.ai web SDK'sı için **Public Key** kullanmanız gerekmektedir. API Key'ler sadece sunucu tarafında kullanılır.
-
-1. Retell.ai kontrol panelinize giriş yapın
-2. "Public Keys" bölümüne gidin
-3. Yeni bir Public Key oluşturun
-4. Public Key'inizin kullanılmasına izin verilen alan adlarını ekleyin:
-   - Geliştirme için: `localhost`
-   - Production için: Vercel domain'iniz (örn: `your-app.vercel.app`)
-
-### 4. Environment Variables Ayarlama
+### 3. Environment Variables Ayarlama
 
 Vercel proje ayarlarında "Environment Variables" bölümüne gidin ve şu değişkenleri ekleyin:
 
@@ -92,15 +81,15 @@ Vercel proje ayarlarında "Environment Variables" bölümüne gidin ve şu deği
 - **Value:** `agent_e137bdf68f6bc9474f8fd37c1e`
 - **Environment:** Production, Preview, Development (hepsini seçin)
 
-- **Name:** `VITE_RETELL_PUBLIC_KEY`
-- **Value:** Retell.ai kontrol panelinden aldığınız Public Key
+- **Name:** `VITE_RETELL_API_KEY`
+- **Value:** `key_fc2acc5bad35c0fe1b46e2ca033d`
 - **Environment:** Production, Preview, Development (hepsini seçin)
 
 **Önemli:** 
 - Vite'da environment variables kullanmak için `VITE_` öneki gereklidir
-- Public Key'inizi Retell.ai kontrol panelinde oluşturduktan sonra domain'inizi eklemeyi unutmayın
+- API Key'inizi güvenli tutun ve public repository'lerde paylaşmayın
 
-### 5. Deploy
+### 4. Deploy
 
 Environment variables'ları ekledikten sonra "Deploy" butonuna tıklayın. Vercel otomatik olarak projeyi build edip deploy edecektir.
 

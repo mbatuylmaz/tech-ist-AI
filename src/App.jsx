@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { RetellWebClient } from 'retell-client-js-sdk'
 import './App.css'
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
     return () => {
       if (retellClientRef.current) {
         try {
-          retellClientRef.current.stop()
+          retellClientRef.current.stopCall()
         } catch (e) {
           console.error('Cleanup hatası:', e)
         }
@@ -26,73 +27,68 @@ function App() {
 
     try {
       const agentId = import.meta.env.VITE_RETELL_AGENT_ID || 'agent_e137bdf68f6bc9474f8fd37c1e'
-      const publicKey = import.meta.env.VITE_RETELL_PUBLIC_KEY || ''
+      const apiKey = import.meta.env.VITE_RETELL_API_KEY || ''
       
-      // Retell.ai SDK script'ini dinamik olarak yükle
-      if (!document.querySelector('script[src*="retell"]')) {
-        const script = document.createElement('script')
-        script.src = 'https://cdn.retellai.com/retell-sdk-web/retell-sdk-web.js'
-        script.async = true
-        document.body.appendChild(script)
-        
-        // SDK'nın yüklenmesini bekle
-        await new Promise((resolve, reject) => {
-          script.onload = () => {
-            console.log('Retell.ai SDK script yüklendi')
-            // SDK'nın window'a eklenmesini bekle
-            setTimeout(resolve, 500)
+      // Access token almak için Retell.ai API'sini kullan
+      // Not: Production'da bu işlem backend'de yapılmalıdır
+      let accessToken = ''
+      
+      if (apiKey && agentId) {
+        try {
+          const response = await fetch('https://api.retellai.com/create-websocket-token', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              agent_id: agentId
+            })
+          })
+          
+          if (!response.ok) {
+            throw new Error('Access token alınamadı')
           }
-          script.onerror = () => {
-            reject(new Error('Retell.ai SDK script yüklenemedi'))
-          }
-          setTimeout(() => reject(new Error('SDK yükleme zaman aşımı')), 15000)
-        })
-      }
-      
-      // Retell.ai SDK'nın yüklenmesini bekle
-      let retries = 0
-      const maxRetries = 30
-      while (!window.RetellWebClient && retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        retries++
-        console.log(`SDK yükleniyor... (${retries}/${maxRetries})`)
-      }
-
-      if (!window.RetellWebClient) {
-        console.error('window.RetellWebClient bulunamadı. window objesi:', Object.keys(window).filter(k => k.toLowerCase().includes('retell')))
-        throw new Error('Retell.ai SDK yüklenemedi. Lütfen sayfayı yenileyin. Eğer sorun devam ederse, Retell.ai Public Key\'inizi kontrol edin.')
-      }
-      
-      console.log('Retell.ai SDK başarıyla yüklendi')
-
-      // Retell.ai Web SDK kullanarak konuşmayı başlat
-      const config = {
-        agentId: agentId,
-        onConnect: () => {
-          console.log('Retell.ai bağlantısı kuruldu')
-          setIsConnected(true)
-          setIsConnecting(false)
-        },
-        onDisconnect: () => {
-          console.log('Retell.ai bağlantısı kesildi')
-          setIsConnected(false)
-        },
-        onError: (error) => {
-          console.error('Retell.ai hatası:', error)
-          setError(error?.message || error?.toString() || 'Bir hata oluştu')
-          setIsConnecting(false)
-          setIsConnected(false)
+          
+          const data = await response.json()
+          accessToken = data.token
+        } catch (err) {
+          console.error('Access token hatası:', err)
+          throw new Error('Retell.ai bağlantısı kurulamadı. API Key ve Agent ID\'nizi kontrol edin.')
         }
+      } else {
+        throw new Error('Retell.ai API Key ve Agent ID gerekli')
       }
 
-      // Public key varsa ekle
-      if (publicKey) {
-        config.publicKey = publicKey
-      }
-
-      const client = new window.RetellWebClient(config)
-
-      await client.start()
+      console.log('Retell.ai SDK başlatılıyor...')
+      
+      // Retell.ai Web Client oluştur
+      const client = new RetellWebClient()
+      
+      // Event listener'ları ekle
+      client.on('conversation_started', () => {
+        console.log('Retell.ai konuşması başladı')
+        setIsConnected(true)
+        setIsConnecting(false)
+      })
+      
+      client.on('conversation_ended', () => {
+        console.log('Retell.ai konuşması sona erdi')
+        setIsConnected(false)
+      })
+      
+      client.on('error', (error) => {
+        console.error('Retell.ai hatası:', error)
+        setError(error?.message || error?.toString() || 'Bir hata oluştu')
+        setIsConnecting(false)
+        setIsConnected(false)
+      })
+      
+      // Konuşmayı başlat
+      await client.startCall({
+        accessToken: accessToken
+      })
+      
       retellClientRef.current = client
     } catch (err) {
       console.error('Konuşma başlatılamadı:', err)
@@ -104,7 +100,7 @@ function App() {
   const stopConversation = () => {
     if (retellClientRef.current) {
       try {
-        retellClientRef.current.stop()
+        retellClientRef.current.stopCall()
         retellClientRef.current = null
         setIsConnected(false)
       } catch (err) {
