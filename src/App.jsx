@@ -30,12 +30,12 @@ function App() {
       const apiKey = import.meta.env.VITE_RETELL_API_KEY || ''
       
       // Access token almak için Retell.ai API'sini kullan
-      // Not: Production'da bu işlem backend'de yapılmalıdır
+      // Doğru endpoint: /create-retell-llm-call
       let accessToken = ''
       
       if (apiKey && agentId) {
         try {
-          const response = await fetch('https://api.retellai.com/create-websocket-token', {
+          const response = await fetch('https://api.retellai.com/create-retell-llm-call', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
@@ -47,14 +47,21 @@ function App() {
           })
           
           if (!response.ok) {
-            throw new Error('Access token alınamadı')
+            const errorText = await response.text()
+            console.error('API yanıtı:', response.status, errorText)
+            throw new Error(`Access token alınamadı: ${response.status}`)
           }
           
           const data = await response.json()
-          accessToken = data.token
+          accessToken = data.call?.call_id || data.call_id || data.token || data.access_token
+          
+          if (!accessToken) {
+            console.error('API yanıtı:', data)
+            throw new Error('Access token bulunamadı')
+          }
         } catch (err) {
           console.error('Access token hatası:', err)
-          throw new Error('Retell.ai bağlantısı kurulamadı. API Key ve Agent ID\'nizi kontrol edin.')
+          throw new Error(`Retell.ai bağlantısı kurulamadı: ${err.message}`)
         }
       } else {
         throw new Error('Retell.ai API Key ve Agent ID gerekli')
