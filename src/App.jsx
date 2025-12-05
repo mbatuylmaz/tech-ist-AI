@@ -92,7 +92,7 @@ function App() {
   return (
     <div className="app">
       <div className="container">
-        <h1 className="title">Tech Ist AI</h1>
+        <h1 className="title">call.ai</h1>
         <p className="subtitle">Sesli AI Asistanınız</p>
         
         {error && (

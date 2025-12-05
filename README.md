@@ -1,4 +1,4 @@
-# Tech Ist AI
+# call.ai
 
 Retell.ai ile oluşturulmuş sesli AI asistan web uygulaması.
 
@@ -13,7 +13,7 @@ Retell.ai ile oluşturulmuş sesli AI asistan web uygulaması.
 1. Projeyi klonlayın:
 ```bash
 git clone <repository-url>
-cd "tech-ist-ai"
+cd "call-ai"
 ```
 
 2. Bağımlılıkları yükleyin:
